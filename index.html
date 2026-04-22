@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SBTI × ETF 포트폴리오 가이드 | 개발하는고양이</title>
+<meta name="description" content="SBTI 27유형 전원에게 ETF 포트폴리오 1개씩. 9문항으로 27유형 중 하나를 매칭.">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;700;900&family=Noto+Serif+KR:wght@600;900&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<style>
+:root {
+  --bg: #f6f4f0;
+  --surface: #ffffff;
+  --surface2: #f0ede8;
+  --border: #e2ded6;
+  --text: #2c2a26;
+  --sub: #7a756c;
+  --dim: #a8a29a;
+  --gold: #b8892e;
+  --gold-soft: rgba(184,137,46,0.08);
+  --blue: #4a7fa5;
+  --coral: #c0605a;
+  --cream: #1f1d1a;
+  --green: #4d8f5a;
+  --warn-bg: rgba(192,96,90,0.08);
+  --warn-bd: rgba(192,96,90,0.25);
+}
+* { margin:0; padding:0; box-sizing:border-box; }
+
+body {
+  font-family: 'Noto Sans KR', -apple-system, sans-serif;
+  background: var(--bg); color: var(--text);
+  min-height: 100vh; line-height: 1.7;
+  background-image: url('background.png');
+  background-size: cover; background-position: center top;
+  background-repeat: no-repeat; background-attachment: fixed;
+}
+body::before { content:''; position:fixed; inset:0; background:rgba(246,244,240,0.92); z-index:0; }
+.container { max-width:760px; margin:0 auto; padding:24px 20px 64px; position:relative; z-index:1; }
+
+.header { text-align:center; padding:48px 0 32px; }
+.header .avatar { width:68px; height:68px; border-radius:50%; border:2px solid var(--gold); margin-bottom:16px; opacity:0.95; }
+.header h1 { font-family:'Noto Serif KR',serif; font-size:28px; font-weight:900; color:var(--cream); letter-spacing:-1px; margin-bottom:6px; }
+.header p { color:var(--sub); font-size:14px; font-weight:300; }
+.badge { display:inline-block; border:1px solid var(--border); border-radius:20px; padding:4px 14px; font-size:11px; color:var(--sub); margin-top:14px; letter-spacing:0.5px; }
+
+.btn-group { display:flex; gap:10px; justify-content:center; margin-top:18px; flex-wrap:wrap; }
+.blog-btn { display:inline-flex; align-items:center; gap:7px; text-decoration:none; font-weight:700; font-size:13px; padding:10px 22px; border-radius:8px; transition:all 0.2s ease; }
+.blog-btn:hover { transform:translateY(-1px); }
+.blog-btn.primary { background:var(--gold); color:#fff; }
+.blog-btn.primary:hover { box-shadow:0 4px 16px rgba(184,137,46,0.3); }
+.blog-btn.secondary { background:transparent; color:var(--sub); border:1px solid var(--border); }
+.blog-btn.secondary:hover { border-color:var(--sub); color:var(--text); }
+.blog-btn svg { width:15px; height:15px; }
+.blog-btn.primary svg { fill:#fff; }
+.blog-btn.secondary svg { fill:var(--sub); }
+
+.tabs { display:flex; gap:0; border-bottom:1px solid var(--border); margin-bottom:28px; }
+.tab { flex:1; padding:13px 8px; text-align:center; cursor:pointer; font-size:14px; font-weight:400; color:var(--dim); transition:all 0.2s; border:none; background:none; border-bottom:2px solid transparent; margin-bottom:-1px; }
+.tab.active { color:var(--gold); font-weight:700; border-bottom-color:var(--gold); }
+.tab:hover:not(.active) { color:var(--sub); }
+
+.card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:24px; margin-bottom:16px; }
+.card h2 { font-family:'Noto Serif KR',serif; font-size:18px; color:var(--cream); margin-bottom:10px; }
+.card p { font-size:13px; color:var(--sub); }
+
+.info-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:20px 24px; margin:16px 0; font-size:13px; color:var(--sub); line-height:1.9; }
+.info-card strong { color:var(--cream); font-family:'Noto Serif KR',serif; }
+.info-card .mono { font-family:'DM Mono',monospace; color:var(--gold); }
+
+.fact-grid { display:grid; grid-template-columns:repeat(4,1fr); gap:8px; margin:18px 0 4px; }
+.fact { background:var(--surface2); border-radius:10px; padding:12px 8px; text-align:center; }
+.fact .num { font-family:'DM Mono',monospace; font-size:20px; font-weight:500; color:var(--gold); }
+.fact .lbl { font-size:11px; color:var(--sub); margin-top:2px; }
+
+.legend { display:flex; flex-wrap:wrap; gap:8px; margin:14px 0 16px; }
+.legend .lg { font-size:11px; padding:4px 12px; border-radius:20px; font-weight:700; letter-spacing:0.3px; }
+.type-grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(116px,1fr)); gap:8px; }
+.type-cell { padding:12px 8px; border-radius:10px; border:1px solid var(--border); background:var(--surface); cursor:pointer; transition:all 0.18s; text-align:center; }
+.type-cell:hover { transform:translateY(-2px); box-shadow:0 4px 12px rgba(0,0,0,0.06); border-color:var(--sub); }
+.type-cell .t-code { font-family:'Noto Serif KR',serif; font-size:17px; font-weight:900; color:var(--cream); letter-spacing:-0.5px; }
+.type-cell .t-name { font-size:11px; color:var(--sub); margin-top:2px; min-height:1.4em; }
+.type-cell .t-badge { font-size:10px; margin-top:6px; padding:2px 10px; border-radius:10px; display:inline-block; font-weight:700; letter-spacing:0.3px; }
+.type-cell.hidden-type { border-style:dashed; background:var(--surface2); }
+.type-cell.hidden-type .t-code { color:var(--coral); }
+
+.cluster-CTRL  { color:var(--green); background:rgba(77,143,90,0.12); }
+.cluster-ORDN  { color:var(--blue);  background:rgba(74,127,165,0.12); }
+.cluster-HHHH  { color:var(--gold);  background:rgba(184,137,46,0.14); }
+.cluster-DRUNK { color:var(--coral); background:rgba(192,96,90,0.14); }
+
+.cluster-section { margin:18px 0 8px; }
+.cluster-section .sec-head { display:flex; align-items:baseline; gap:10px; margin-bottom:4px; flex-wrap:wrap; }
+.cluster-section h3 { font-family:'Noto Serif KR',serif; font-size:18px; color:var(--cream); letter-spacing:-0.5px; }
+.cluster-section .sec-pill { font-size:11px; padding:3px 12px; border-radius:20px; font-weight:700; letter-spacing:0.3px; }
+.cluster-section .sec-desc { font-size:12px; color:var(--sub); margin-bottom:12px; }
+.pf-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:12px; }
+
+.pf-card { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:16px 18px; transition:border-color 0.3s, box-shadow 0.3s; display:flex; flex-direction:column; }
+.pf-card.representative { border-color:rgba(184,137,46,0.3); background:linear-gradient(180deg, var(--surface), rgba(184,137,46,0.025)); }
+.pf-card.highlight-pulse { border-color:var(--gold); box-shadow:0 0 0 4px var(--gold-soft); }
+.pf-head { display:flex; align-items:baseline; justify-content:space-between; gap:6px; margin-bottom:4px; flex-wrap:wrap; }
+.pf-title { display:flex; align-items:baseline; gap:6px; flex-wrap:wrap; }
+.pf-code { font-family:'Noto Serif KR',serif; font-size:19px; font-weight:900; color:var(--cream); letter-spacing:-0.5px; }
+.pf-name { font-size:12px; color:var(--sub); }
+.pf-tags { display:flex; gap:4px; align-items:center; }
+.risk-tag { font-size:10px; padding:2px 8px; border-radius:10px; font-weight:700; letter-spacing:0.3px; }
+.risk-low { background:rgba(77,143,90,0.12); color:var(--green); }
+.risk-mid { background:rgba(74,127,165,0.12); color:var(--blue); }
+.risk-high { background:rgba(184,137,46,0.14); color:var(--gold); }
+.risk-xh { background:rgba(192,96,90,0.14); color:var(--coral); }
+.star-tag { font-size:10px; color:var(--gold); background:var(--gold-soft); padding:2px 8px; border-radius:10px; font-weight:700; }
+.pf-hook { font-size:11.5px; color:var(--dim); font-style:italic; margin:4px 0 10px; line-height:1.5; min-height:2.4em; }
+.pf-body { display:grid; grid-template-columns:120px 1fr; gap:10px; align-items:center; }
+.pf-donut-wrap { position:relative; width:120px; height:120px; }
+.pf-donut-center { position:absolute; inset:0; display:flex; flex-direction:column; align-items:center; justify-content:center; pointer-events:none; }
+.pf-donut-center .pct { font-family:'DM Mono',monospace; font-size:14px; color:var(--cream); }
+.pf-donut-center .unit { font-size:9px; color:var(--dim); }
+
+.alloc-list { display:flex; flex-direction:column; gap:4px; }
+.alloc-row { display:grid; grid-template-columns:8px 1fr auto; gap:6px; align-items:center; font-size:11.5px; }
+.alloc-dot { width:8px; height:8px; border-radius:50%; }
+.alloc-etf { color:var(--text); line-height:1.3; }
+.alloc-etf .note { display:block; font-size:10px; color:var(--dim); margin-top:1px; }
+.alloc-pct { font-family:'DM Mono',monospace; font-weight:500; color:var(--cream); font-size:11.5px; }
+
+.caveat { margin-top:10px; padding:8px 12px; border-radius:8px; font-size:11px; line-height:1.5; background:var(--gold-soft); border:1px solid rgba(184,137,46,0.18); color:var(--sub); }
+.caveat strong { color:var(--gold); }
+.caveat.warn { background:var(--warn-bg); border-color:var(--warn-bd); }
+.caveat.warn strong { color:var(--coral); }
+
+/* ─── Quiz ─── */
+.quiz-progress { display:flex; align-items:center; gap:10px; margin:4px 0 14px; font-size:11px; color:var(--sub); }
+.quiz-progress .bar { flex:1; height:4px; background:var(--border); border-radius:2px; overflow:hidden; }
+.quiz-progress .fill { height:100%; background:var(--gold); transition:width 0.25s; width:0; }
+.quiz-progress .count { font-family:'DM Mono',monospace; color:var(--cream); }
+
+.quiz-q { background:var(--surface); border:1px solid var(--border); border-radius:12px; padding:18px 20px; margin-bottom:12px; }
+.quiz-q .q-axis { font-size:10px; color:var(--dim); letter-spacing:0.5px; margin-bottom:4px; text-transform:uppercase; }
+.quiz-q .q-title { font-size:13px; color:var(--cream); font-weight:700; margin-bottom:12px; }
+.quiz-q .q-title .num { display:inline-block; width:22px; height:22px; line-height:22px; text-align:center; background:var(--gold); color:#fff; border-radius:50%; font-family:'DM Mono',monospace; font-size:12px; margin-right:8px; }
+.q-options { display:grid; grid-template-columns:repeat(2,1fr); gap:8px; }
+.q-opt { display:block; padding:10px 12px; border:1px solid var(--border); border-radius:8px; font-size:12.5px; color:var(--sub); cursor:pointer; text-align:center; transition:all 0.18s; background:var(--surface); }
+.q-opt input { display:none; }
+.q-opt:hover { border-color:var(--sub); color:var(--text); }
+.q-opt.selected { border-color:var(--gold); background:var(--gold-soft); color:var(--gold); font-weight:700; }
+
+.quiz-cta { display:flex; justify-content:center; margin:18px 0 10px; }
+.quiz-cta button { background:var(--gold); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:14px; padding:12px 28px; cursor:pointer; transition:all 0.2s; font-family:inherit; }
+.quiz-cta button:hover { box-shadow:0 4px 14px rgba(184,137,46,0.28); transform:translateY(-1px); }
+.quiz-cta button:disabled { background:var(--dim); cursor:not-allowed; transform:none; box-shadow:none; }
+
+.quiz-result { background:var(--surface); border:1px solid var(--gold); border-radius:12px; padding:22px; text-align:center; display:none; animation:fadeUp 0.4s ease; }
+.quiz-result.show { display:block; }
+.quiz-result .lead { font-size:12px; color:var(--sub); letter-spacing:0.5px; margin-bottom:4px; }
+.quiz-result .rcode { font-family:'Noto Serif KR',serif; font-size:36px; font-weight:900; color:var(--gold); letter-spacing:-1px; margin-bottom:2px; }
+.quiz-result .rcluster { font-size:11px; color:var(--dim); margin-bottom:4px; }
+.quiz-result .rname { font-size:14px; color:var(--cream); font-weight:700; margin-bottom:4px; }
+.quiz-result .rhook { font-size:12px; color:var(--sub); font-style:italic; margin-bottom:14px; }
+.quiz-result .axis-row { display:flex; justify-content:center; gap:6px; flex-wrap:wrap; margin-bottom:14px; font-size:11px; }
+.quiz-result .axis-chip { background:var(--surface2); border-radius:10px; padding:4px 10px; color:var(--sub); }
+.quiz-result .axis-chip strong { color:var(--cream); font-family:'DM Mono',monospace; }
+.quiz-result .runner-up { font-size:11px; color:var(--dim); margin-bottom:4px; }
+.quiz-result .runner-list { margin-bottom:16px; }
+.quiz-result .runner { display:inline-block; margin:2px 4px; padding:3px 10px; border-radius:12px; background:var(--gold-soft); color:var(--gold); font-size:11px; font-weight:700; cursor:pointer; transition:transform 0.15s; }
+.quiz-result .runner:hover { transform:translateY(-1px); }
+.quiz-result .jump-btn { display:inline-flex; align-items:center; gap:6px; background:var(--cream); color:#fff; border:none; border-radius:8px; font-weight:700; font-size:13px; padding:10px 20px; cursor:pointer; font-family:inherit; }
+.quiz-result .jump-btn:hover { background:var(--gold); }
+
+.checkpoints { margin-top:22px; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; }
+.chk { background:var(--surface2); border-radius:10px; padding:14px 12px; text-align:center; }
+.chk .c-num { font-family:'DM Mono',monospace; font-size:18px; color:var(--gold); font-weight:500; }
+.chk .c-label { font-size:11px; color:var(--sub); margin-top:4px; line-height:1.5; }
+
+.footer { text-align:center; padding:32px 0 10px; border-top:1px solid var(--border); margin-top:36px; }
+.footer p { font-size:12px; color:var(--dim); margin-top:8px; line-height:1.8; }
+
+.section { display:none; }
+.section.active { display:block; }
+@keyframes fadeUp { from { opacity:0; transform:translateY(12px); } to { opacity:1; transform:translateY(0); } }
+.section.active { animation:fadeUp 0.35s ease; }
+
+@media (max-width: 640px) { .pf-grid { grid-template-columns:1fr; } }
+@media (max-width: 560px) {
+  .header h1 { font-size:22px; }
+  .fact-grid { grid-template-columns:repeat(2,1fr); }
+  .q-options { grid-template-columns:1fr; }
+  .checkpoints { grid-template-columns:1fr; }
+  .btn-group { flex-direction:column; align-items:center; }
+  .pf-body { grid-template-columns:100px 1fr; gap:8px; }
+  .pf-donut-wrap { width:100px; height:100px; }
+}
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <img src="profile.jpg" alt="개발하는고양이" class="avatar">
+    <h1>SBTI × ETF<br>포트폴리오 가이드</h1>
+    <p>SBTI 27유형 전원에게 ETF 포트폴리오 1개씩</p>
+    <div class="badge">개발하는고양이 · 2026.04</div>
+    <div class="btn-group">
+      <!-- TODO: replace with actual post URL when published -->
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn primary">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        이 글 원문 보기
+      </a>
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn secondary">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        블로그 홈
+      </a>
+    </div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" onclick="showTab('intro', event)">SBTI 27유형</button>
+    <button class="tab" onclick="showTab('portfolio', event)">유형별 포트폴리오</button>
+    <button class="tab" onclick="showTab('quiz', event)">내 상태 진단</button>
+  </div>
+
+  <!-- TAB 1 -->
+  <div id="tab-intro" class="section active">
+    <div class="card">
+      <h2>SBTI 란?</h2>
+      <p>2026년 4월 중국 빌리빌리에서 시작된 놀이형 심리 테스트. MBTI가 <strong>"나는 이런 사람이다"</strong>라면, SBTI는 <strong>"요즘 나는 이런 상태다"</strong>를 본다. 그리고 요즘의 상태가 포트폴리오를 정한다.</p>
+      <div class="fact-grid">
+        <div class="fact"><div class="num">30</div><div class="lbl">문항</div></div>
+        <div class="fact"><div class="num">5</div><div class="lbl">모델</div></div>
+        <div class="fact"><div class="num">15</div><div class="lbl">차원</div></div>
+        <div class="fact"><div class="num">27</div><div class="lbl">유형</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>27유형 × 4대 투자 클러스터</h2>
+      <p style="margin-bottom:4px;">각 유형을 클릭하면 대응되는 <strong>개별 포트폴리오 카드</strong>로 이동. 27유형 전부 비중이 다르다.</p>
+      <div class="legend">
+        <span class="lg cluster-CTRL">CTRL · 월배당 안정</span>
+        <span class="lg cluster-ORDN">ORDN · 밸런스</span>
+        <span class="lg cluster-HHHH">HHHH · AI 공격</span>
+        <span class="lg cluster-DRUNK">DRUNK · 테마 베팅</span>
+      </div>
+      <div class="type-grid" id="type-grid"></div>
+    </div>
+
+    <div class="info-card">
+      <strong>왜 이게 투자와 엮이나?</strong><br>
+      사람의 성향보다 <span class="mono">지금의 심리 상태</span>가 포트폴리오를 더 잘 맞춘다. 3년 전 공격형이었어도 지금 현금 필요하면 안정형으로 옮겨야 한다. CTRL 상태면 월배당, HHHH 상태면 테마, DRUNK 상태면 한도를 정해놓고 베팅 — 이게 이 앱의 출발점이다.
+    </div>
+  </div>
+
+  <!-- TAB 2 -->
+  <div id="tab-portfolio" class="section">
+    <div class="info-card" style="margin-top:0;">
+      27유형을 <strong>CTRL · ORDN · HHHH · DRUNK</strong> 4대 클러스터로 묶고, 각 유형 성향에 맞게 비중을 틀었다. 각 클러스터 대표 유형(<span class="star-tag">★</span>)은 블로그 본문 기준 베이스 포트, 나머지는 그 변형.
+    </div>
+    <div id="portfolio-host"></div>
+  </div>
+
+  <!-- TAB 3 -->
+  <div id="tab-quiz" class="section">
+    <div class="info-card" style="margin-top:0;">
+      9문항을 풀면 <strong>3축 좌표(안정·성장·규칙)</strong>를 계산해 27유형 중 당신에게 가장 가까운 1개를 매칭한다. 3축 거리 기반이므로 클러스터뿐 아니라 구체 유형까지 찍는다.
+    </div>
+    <div class="quiz-progress">
+      <span>진행</span>
+      <div class="bar"><div class="fill" id="quiz-fill"></div></div>
+      <span class="count"><span id="quiz-count">0</span>/9</span>
+    </div>
+    <div id="quiz-form"></div>
+    <div class="quiz-cta">
+      <button id="btn-quiz" onclick="calcQuiz()" disabled>결과 보기</button>
+    </div>
+    <div id="quiz-result" class="quiz-result"></div>
+
+    <div style="margin-top:28px;">
+      <div class="info-card" style="margin:0 0 12px;">
+        <strong>공통 체크포인트 3가지</strong><br>
+        어느 유형이든 이 3가지는 같이 챙긴다.
+      </div>
+      <div class="checkpoints">
+        <div class="chk"><div class="c-num">29 → 48%</div><div class="c-label">부자 ETF 투자 의향 (+19%p)</div></div>
+        <div class="chk"><div class="c-num">91.1조</div><div class="c-label">국내 액티브 ETF 순자산 (YoY +66.9%)</div></div>
+        <div class="chk"><div class="c-num">AI × 4</div><div class="c-label">2026 핵심 테마 — 빅테크·반도체·전력·SW</div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="footer">
+    <img src="profile.jpg" alt="개발하는고양이" class="avatar" style="width:52px;height:52px;margin-bottom:10px;">
+    <p style="font-size:15px;color:var(--cream);margin-bottom:4px;font-weight:700;font-family:'Noto Serif KR',serif;">SBTI × ETF 더 깊이 보기</p>
+    <p style="font-size:13px;color:var(--sub);margin-bottom:16px;">CTRL 월배당부터 DRUNK 베팅 바스켓까지, 원문에서</p>
+    <div class="btn-group">
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn primary">
+        <svg viewBox="0 0 24 24"><path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></svg>
+        이 글 원문 보기
+      </a>
+      <a href="https://blog.naver.com/economydev" target="_blank" class="blog-btn secondary">
+        <svg viewBox="0 0 24 24"><path d="M10 20v-6h4v6h5v-8h3L12 3 2 12h3v8z"/></svg>
+        블로그 홈
+      </a>
+    </div>
+    <p style="margin-top:20px;">※ 이 앱은 블로그 본문 기준 참고용이며, 특정 종목의 매수·매도를 권유하지 않습니다.<br>투자 판단과 그 결과는 본인의 책임입니다.</p>
+  </div>
+</div>
+
+<script>
+const C = { gold:'#b8892e', blue:'#4a7fa5', coral:'#c0605a', dim:'#a8a29a', green:'#4d8f5a', cream:'#1f1d1a' };
+const SLICE = [C.gold, C.blue, C.green, C.coral, C.dim];
+
+/* ─── SBTI 27유형 × 개별 포트폴리오 + 3축 좌표 ───
+   axis.a = 안정 추구 (-2: 위험선호 / +2: 원금 방어)
+   axis.b = 성장 욕구 (-2: 수익 무관심 / +2: 테마·고성장)
+   axis.c = 규칙성    (-2: 충동·단타 / +2: 적립·리밸런싱)
+   27유형 모두 (a,b,c) 좌표가 유니크. */
+const TYPES = [
+  /* ───── CTRL 클러스터 (리스크 저) ───── */
+  { code:'CTRL', name:'월배당러',   cluster:'CTRL', risk:'low', representative:true, axis:{a:+2,b:-1,c:+1}, hook:'"통장에 매달 숫자 찍혀야 잠이 온다"',
+    alloc:[ {etf:'TIGER 미국배당다우존스 (458730)',pct:40,note:'SCHD 추종 · 분기배당'}, {etf:'TIGER 타겟데일리커버드콜',pct:20,note:'연 12% 분배율 목표'}, {etf:'KODEX 국고채10년',pct:30,note:'변동성 방어'}, {etf:'현금',pct:10,note:'기회 대응'} ],
+    caveat:{type:'info', text:'함정: 분배율이 높을수록 원금은 빠르게 녹는다. <strong>커버드콜 20% 상한</strong> 준수.'} },
+  { code:'SAFE', name:'국채러',     cluster:'CTRL', risk:'low', axis:{a:+2,b:-2,c:+2}, hook:'"원금 깎이는 게 세상에서 제일 싫다"',
+    alloc:[ {etf:'KODEX 국고채10년',pct:40}, {etf:'KODEX 국고채3년',pct:20}, {etf:'TIGER 미국배당다우존스',pct:20,note:'배당 보강'}, {etf:'KODEX 단기채권',pct:10}, {etf:'현금',pct:10} ] },
+  { code:'CALM', name:'인컴러',     cluster:'CTRL', risk:'low', axis:{a:+2,b:-1,c:0},  hook:'"배당만 들어오면 시장 출렁여도 태평"',
+    alloc:[ {etf:'TIGER 미국배당다우존스',pct:40}, {etf:'TIGER 타겟데일리커버드콜',pct:25,note:'고분배'}, {etf:'KODEX 리츠플러스',pct:15,note:'부동산 인컴'}, {etf:'KODEX 국고채10년',pct:10}, {etf:'현금',pct:10} ] },
+  { code:'PLAN', name:'장투러',     cluster:'CTRL', risk:'low', axis:{a:+1,b:+1,c:+2}, hook:'"3년 이상 안 건드릴 돈만 넣는다"',
+    alloc:[ {etf:'KODEX 미국S&P500',pct:40}, {etf:'TIGER 미국배당다우존스',pct:25}, {etf:'KODEX 미국나스닥100',pct:15}, {etf:'KODEX 국고채10년',pct:10}, {etf:'현금',pct:10} ] },
+  { code:'SLOW', name:'예적금파',   cluster:'CTRL', risk:'low', axis:{a:+2,b:-2,c:+1}, hook:'"예금 금리 넘으면 그게 수익이다"',
+    alloc:[ {etf:'MMF/파킹통장',pct:30}, {etf:'KODEX 국고채3년',pct:30}, {etf:'TIGER 미국배당다우존스',pct:25}, {etf:'KODEX 단기채권',pct:10}, {etf:'현금',pct:5} ] },
+  { code:'COIN', name:'커버드콜러', cluster:'CTRL', risk:'low', axis:{a:+1,b:-1,c:0},  hook:'"높은 분배율이 가장 큰 매력"',
+    alloc:[ {etf:'TIGER 타겟데일리커버드콜',pct:40,note:'연 12%'}, {etf:'QYLD류 커버드콜',pct:25}, {etf:'TIGER 미국배당다우존스',pct:20}, {etf:'KODEX 국고채10년',pct:10}, {etf:'현금',pct:5} ] },
+  { code:'LOCK', name:'연금러',     cluster:'CTRL', risk:'low', axis:{a:+1,b:0,c:+2},  hook:'"세액공제부터 챙긴다 · IRP/연금저축"',
+    alloc:[ {etf:'TDF2050 등 타겟데이트',pct:35,note:'연금계좌 전용'}, {etf:'TIGER 미국배당다우존스',pct:25}, {etf:'KODEX 국고채10년',pct:20}, {etf:'KODEX 미국S&P500',pct:15}, {etf:'현금',pct:5} ] },
+
+  /* ───── ORDN 클러스터 (리스크 중) ───── */
+  { code:'ORDN', name:'지수추종파', cluster:'ORDN', risk:'mid', representative:true, axis:{a:0,b:+1,c:+1},  hook:'"시장 평균이면 충분하다"',
+    alloc:[ {etf:'KODEX 미국S&P500',pct:40,note:'글로벌 대장 지수'}, {etf:'TIGER 미국배당다우존스',pct:20,note:'배당 완충'}, {etf:'KODEX AI반도체',pct:15,note:'테마 참여'}, {etf:'코스피200 ETF',pct:15,note:'PER 14.2배'}, {etf:'현금',pct:10} ],
+    caveat:{type:'info', text:'코스피200 PER은 <strong>14.2배</strong>. 미국 대비 여전히 저평가라 15% 섞을 가치가 있다.'} },
+  { code:'BLND', name:'글로벌믹스', cluster:'ORDN', risk:'mid', axis:{a:+1,b:+1,c:+1}, hook:'"한 나라에 몰빵 안 한다"',
+    alloc:[ {etf:'KODEX 미국S&P500',pct:30}, {etf:'KODEX 신흥국MSCI',pct:20}, {etf:'TIGER 미국배당다우존스',pct:20}, {etf:'코스피200 ETF',pct:15}, {etf:'TIGER 유럽스탁스50',pct:10}, {etf:'현금',pct:5} ] },
+  { code:'MDWY', name:'60/40파',    cluster:'ORDN', risk:'mid', axis:{a:+1,b:0,c:0},   hook:'"주식 6, 채권 4 고집"',
+    alloc:[ {etf:'KODEX 미국S&P500',pct:40}, {etf:'KODEX 미국나스닥100',pct:20}, {etf:'KODEX 국고채10년',pct:25}, {etf:'TIGER 미국배당다우존스',pct:10}, {etf:'현금',pct:5} ] },
+  { code:'NEUT', name:'TDF러',      cluster:'ORDN', risk:'mid', axis:{a:0,b:+1,c:+2},  hook:'"자동 리밸런싱이 제일 편하다"',
+    alloc:[ {etf:'TDF2050 등 타겟데이트',pct:50}, {etf:'TIGER 미국배당다우존스',pct:20}, {etf:'KODEX AI반도체',pct:15}, {etf:'KODEX 국고채10년',pct:10}, {etf:'현금',pct:5} ] },
+  { code:'STDY', name:'적립식',     cluster:'ORDN', risk:'mid', axis:{a:0,b:0,c:+2},   hook:'"매달 정해진 금액만 기계적으로"',
+    alloc:[ {etf:'KODEX 미국S&P500',pct:35}, {etf:'코스피200 ETF',pct:25}, {etf:'TIGER 미국배당다우존스',pct:20}, {etf:'KODEX AI반도체',pct:10}, {etf:'현금',pct:10} ] },
+  { code:'SOFT', name:'대형주파',   cluster:'ORDN', risk:'mid', axis:{a:0,b:+1,c:0},   hook:'"어차피 대장주가 이긴다"',
+    alloc:[ {etf:'KODEX 200 대형주',pct:30}, {etf:'MAG7 ETF',pct:25}, {etf:'KODEX 미국S&P500',pct:25}, {etf:'TIGER 미국배당다우존스',pct:10}, {etf:'현금',pct:10} ] },
+  { code:'WORK', name:'리밸런서',   cluster:'ORDN', risk:'mid', axis:{a:+1,b:0,c:+1},  hook:'"분기마다 비중 다시 맞춘다"',
+    alloc:[ {etf:'KODEX 미국S&P500',pct:35}, {etf:'KODEX 국고채10년',pct:25}, {etf:'KODEX 미국나스닥100',pct:15}, {etf:'TIGER 미국배당다우존스',pct:15}, {etf:'현금',pct:10} ] },
+
+  /* ───── HHHH 클러스터 (리스크 고) ───── */
+  { code:'HHHH', name:'반도체몰빵', cluster:'HHHH', risk:'high', representative:true, axis:{a:-1,b:+2,c:+1}, hook:'"삼성·하이닉스 아니면 안 산다"',
+    alloc:[ {etf:'KODEX AI반도체',pct:35,note:'1Y +181.22%'}, {etf:'KODEX 미국나스닥100',pct:25,note:'글로벌 성장'}, {etf:'TIGER Fn반도체TOP10 (396500)',pct:20,note:'순자산 7,077억'}, {etf:'차이나테크TOP10',pct:10,note:'중국 AI 베팅'}, {etf:'현금',pct:10} ],
+    caveat:{type:'info', text:'상품명이 아니라 <strong>구성종목 비중표</strong>를 확인. ACE AI반도체포커스는 삼성+하이닉스 51.27%.'} },
+  { code:'WILD', name:'성장주파',   cluster:'HHHH', risk:'high', axis:{a:-1,b:+2,c:0},  hook:'"배당 주는 건 늙은 회사"',
+    alloc:[ {etf:'KODEX 미국나스닥100',pct:35}, {etf:'MAG7 ETF',pct:25}, {etf:'KODEX AI반도체',pct:20}, {etf:'차이나테크TOP10',pct:10}, {etf:'현금',pct:10} ] },
+  { code:'PUSH', name:'모멘텀러',   cluster:'HHHH', risk:'high', axis:{a:-1,b:+2,c:-1}, hook:'"오르는 걸 더 산다"',
+    alloc:[ {etf:'KODEX AI반도체',pct:30}, {etf:'KODEX 미국나스닥100',pct:25}, {etf:'TIGER 모멘텀 팩터',pct:20}, {etf:'TIGER 원자재선물',pct:10}, {etf:'현금',pct:15} ] },
+  { code:'BOLD', name:'빅테크러',   cluster:'HHHH', risk:'high', axis:{a:0,b:+2,c:0},   hook:'"MAG7만 있으면 된다"',
+    alloc:[ {etf:'MAG7 ETF',pct:40}, {etf:'KODEX 미국나스닥100',pct:25}, {etf:'KODEX AI반도체',pct:15}, {etf:'TIGER 미국테크TOP10',pct:10}, {etf:'현금',pct:10} ] },
+  { code:'LOUD', name:'AI광',       cluster:'HHHH', risk:'high', axis:{a:0,b:+2,c:-1},  hook:'"AI 붙은 건 일단 담는다"',
+    alloc:[ {etf:'KODEX AI반도체',pct:30}, {etf:'TIGER AI소프트웨어',pct:25}, {etf:'KODEX 미국나스닥100',pct:20}, {etf:'차이나AI테크',pct:15}, {etf:'현금',pct:10} ] },
+  { code:'FAST', name:'단타러',     cluster:'HHHH', risk:'high', axis:{a:-2,b:+1,c:-2}, hook:'"분 단위로 계좌 본다"',
+    alloc:[ {etf:'KODEX 나스닥100 레버리지',pct:25,note:'고변동'}, {etf:'KODEX AI반도체',pct:25}, {etf:'TIGER 변동성테마',pct:20}, {etf:'KODEX 코스피 대형',pct:15}, {etf:'현금',pct:15} ] },
+  { code:'TECH', name:'테크불',     cluster:'HHHH', risk:'high', axis:{a:0,b:+2,c:+1},  hook:'"기술주 아니면 쳐다도 안 본다"',
+    alloc:[ {etf:'KODEX 미국나스닥100',pct:35}, {etf:'KODEX AI반도체',pct:25}, {etf:'TIGER Fn반도체TOP10',pct:20}, {etf:'차이나테크TOP10',pct:10}, {etf:'현금',pct:10} ] },
+
+  /* ───── DRUNK 클러스터 (리스크 초고, 전체 자산 20% 이내 권장) ───── */
+  { code:'SHOT', name:'레버리지파', cluster:'DRUNK', risk:'xh', axis:{a:-2,b:+2,c:-1}, hook:'"2배 ETF 아니면 시시하다"',
+    alloc:[ {etf:'KODEX 나스닥100 2X',pct:30,note:'변동성 곱'}, {etf:'KODEX 미국S&P500 2X',pct:25}, {etf:'KODEX AI반도체',pct:20}, {etf:'KODEX 레버리지',pct:10}, {etf:'현금',pct:15} ] },
+  { code:'RISK', name:'하이리스크', cluster:'DRUNK', risk:'xh', axis:{a:-2,b:+1,c:-1}, hook:'"변동성이 곧 기회다"',
+    alloc:[ {etf:'비트코인 현물 ETF',pct:25}, {etf:'KODEX AI반도체',pct:25}, {etf:'차이나테크TOP10',pct:20}, {etf:'우주·방산 테마',pct:15}, {etf:'현금',pct:15} ] },
+  { code:'DARE', name:'옵션러',     cluster:'DRUNK', risk:'xh', axis:{a:-1,b:+1,c:-2}, hook:'"콜·풋 안 하면 허전"',
+    alloc:[ {etf:'TIGER 타겟데일리커버드콜',pct:25}, {etf:'KODEX 나스닥100 레버리지',pct:25}, {etf:'KODEX AI반도체',pct:20}, {etf:'비트코인 현물 ETF',pct:15}, {etf:'현금',pct:15} ] },
+  { code:'CHAO', name:'밈코인러',   cluster:'DRUNK', risk:'xh', axis:{a:-2,b:0,c:-2},  hook:'"도지·시바가 제일 재밌다"',
+    alloc:[ {etf:'비트코인 현물 ETF',pct:30}, {etf:'이더리움 현물 ETF',pct:20}, {etf:'밈주 테마 ETF',pct:20}, {etf:'KODEX AI반도체',pct:15}, {etf:'현금',pct:15} ] },
+  { code:'BURN', name:'테마올인',   cluster:'DRUNK', risk:'xh', axis:{a:-2,b:+2,c:-2}, hook:'"이번 테마는 진짜라고 믿음"',
+    alloc:[ {etf:'휴머노이드 ETF',pct:25}, {etf:'우주·방산 테마',pct:25}, {etf:'TIGER AI소프트웨어',pct:25}, {etf:'비트코인 현물 ETF',pct:15}, {etf:'현금',pct:10} ] },
+  { code:'DRUNK', name:'자정매수',   cluster:'DRUNK', risk:'xh', representative:true, hidden:true, axis:{a:-1,b:+2,c:-2}, hook:'"평소엔 안 하던 걸 질러버림"',
+    alloc:[ {etf:'비트코인 현물 ETF (IBIT 등)',pct:25,note:'변동성 베팅'}, {etf:'차이나테크TOP10',pct:25,note:'중국 AI 자립'}, {etf:'AI 소프트웨어·휴머노이드',pct:25,note:'Physical AI'}, {etf:'우주·방산 테마 ETF',pct:15,note:'지정학 헤지'}, {etf:'현금',pct:10,note:'탈출 버퍼'} ],
+    caveat:{type:'warn', text:'⚠ 반드시 <strong>전체 자산의 20% 이내</strong>, 계좌 분리. 맨정신 계좌까지 같이 날아가지 않도록.'} }
+];
+
+const CLUSTER_INFO = {
+  CTRL:  { label:'CTRL · 월배당 안정',  desc:'배당·채권·원금 방어 중심. 예측 가능한 현금흐름이 최우선.' },
+  ORDN:  { label:'ORDN · 밸런스',       desc:'지수추종·글로벌 분산·60/40. 시장 평균을 따라간다.' },
+  HHHH:  { label:'HHHH · AI 공격',      desc:'AI·반도체·빅테크 성장. 고변동 감수하고 상승 탑승.' },
+  DRUNK: { label:'DRUNK · 테마 베팅',   desc:'레버리지·코인·테마. 전체 자산의 20% 이내에 두는 베팅 바스켓.' }
+};
+const RISK_LABEL = { low:'리스크 저', mid:'리스크 중', high:'리스크 고', xh:'리스크 초고' };
+const AXIS_LABEL = { a:'안정', b:'성장', c:'규칙' };
+
+/* ─── 9문항 퀴즈 · 각 문항마다 옵션이 (a,b,c) 축에 기여 ─── */
+const QUIZ = [
+  /* A축 — 안정 추구 */
+  { axis:'a', q:'시장이 갑자기 −10% 빠졌다. 내 반응은?',
+    options:[
+      { label:'즉시 일부 현금화',       d:{ a:+2, b: 0, c:+1 } },
+      { label:'조금 비중 줄인다',       d:{ a:+1, b: 0, c: 0 } },
+      { label:'그대로 둔다',             d:{ a: 0, b: 0, c:+1 } },
+      { label:'더 산다 — 세일이다',      d:{ a:-2, b:+1, c:-1 } }
+    ]},
+  { axis:'a', q:'현금(파킹) 비중 전략은?',
+    options:[
+      { label:'30% 이상 꾸준히',         d:{ a:+2, b:-1, c:+1 } },
+      { label:'10~20% 유지',             d:{ a:+1, b: 0, c:+1 } },
+      { label:'거의 0 — 다 굴린다',      d:{ a:-1, b:+1, c: 0 } },
+      { label:'레버리지까지 쓴다',       d:{ a:-2, b:+2, c:-2 } }
+    ]},
+  { axis:'a', q:'내가 원하는 연 목표 수익률은?',
+    options:[
+      { label:'예금 +α면 충분',          d:{ a:+2, b:-2, c:+1 } },
+      { label:'연 7~10% 시장 평균',      d:{ a:+1, b:+1, c:+1 } },
+      { label:'연 20%+ 를 노린다',       d:{ a:-1, b:+2, c: 0 } },
+      { label:'대박 아니면 안 한다',     d:{ a:-2, b:+2, c:-1 } }
+    ]},
+
+  /* B축 — 성장 욕구 */
+  { axis:'b', q:'ETF 고를 때 1순위 기준?',
+    options:[
+      { label:'분배율·배당수익률',       d:{ a:+1, b:-2, c: 0 } },
+      { label:'비용·지수 추종 정확도',   d:{ a:+1, b: 0, c:+2 } },
+      { label:'과거 수익률',             d:{ a:-1, b:+2, c:-1 } },
+      { label:'테마 스토리',             d:{ a:-1, b:+2, c:-1 } }
+    ]},
+  { axis:'b', q:'지금 가장 끌리는 ETF 한 종은?',
+    options:[
+      { label:'SCHD / 배당다우존스',     d:{ a:+2, b:-1, c:+1 } },
+      { label:'S&P500 / 나스닥100',       d:{ a:+1, b:+1, c:+1 } },
+      { label:'AI반도체 / MAG7',         d:{ a:-1, b:+2, c: 0 } },
+      { label:'레버리지 / 비트코인 ETF', d:{ a:-2, b:+2, c:-2 } }
+    ]},
+  { axis:'b', q:'1년 뒤 내 계좌가 어떻기를?',
+    options:[
+      { label:'꾸준한 배당 통장',        d:{ a:+2, b:-2, c:+1 } },
+      { label:'지수보다 살짝 웃돌기',     d:{ a:+1, b:+1, c:+1 } },
+      { label:'시장 크게 상회',           d:{ a:-1, b:+2, c: 0 } },
+      { label:'+100% 아니면 0도 OK',     d:{ a:-2, b:+2, c:-2 } }
+    ]},
+
+  /* C축 — 규칙 vs 충동 */
+  { axis:'c', q:'평소 매매 주기는?',
+    options:[
+      { label:'매월 정해진 날짜만',       d:{ a:+1, b: 0, c:+2 } },
+      { label:'분기에 한 번 점검',        d:{ a:+1, b: 0, c:+1 } },
+      { label:'이슈 있을 때마다',         d:{ a:-1, b:+1, c:-1 } },
+      { label:'생각날 때 충동적으로',     d:{ a:-2, b:+1, c:-2 } }
+    ]},
+  { axis:'c', q:'리밸런싱 방식은?',
+    options:[
+      { label:'자동 (TDF·연금 로보)',     d:{ a:+1, b: 0, c:+2 } },
+      { label:'분기마다 수동 점검',       d:{ a:+1, b: 0, c:+1 } },
+      { label:'거의 안 함',               d:{ a:-1, b:+1, c:-1 } },
+      { label:'즉흥 매매로 대체',         d:{ a:-2, b:+1, c:-2 } }
+    ]},
+  { axis:'c', q:'투자 정보 소비 습관은?',
+    options:[
+      { label:'장기 목표만 · 거의 안 봄', d:{ a:+1, b:-1, c:+2 } },
+      { label:'주요 뉴스 주기적 체크',     d:{ a: 0, b: 0, c:+1 } },
+      { label:'매일 체크',                 d:{ a:-1, b:+2, c:-1 } },
+      { label:'실시간 커뮤니티 따라감',   d:{ a:-2, b:+2, c:-2 } }
+    ]}
+];
+
+/* ─── Helpers ─── */
+function showTab(id, e) {
+  document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + id).classList.add('active');
+  if (e && e.currentTarget) e.currentTarget.classList.add('active');
+}
+
+/* ─── Tab 1: type grid ─── */
+function renderTypes() {
+  const host = document.getElementById('type-grid');
+  host.innerHTML = TYPES.map(t => `
+    <div class="type-cell ${t.hidden ? 'hidden-type' : ''}"
+         onclick="jumpToType('${t.code}')"
+         title="${t.hook.replace(/"/g,'&quot;')} → 개별 포트폴리오 보기">
+      <div class="t-code">${t.code}${t.hidden ? ' <span style="color:var(--coral);font-size:11px;">✦</span>' : ''}</div>
+      <div class="t-name">${t.name}</div>
+      <div class="t-badge cluster-${t.cluster}">${t.cluster}</div>
+    </div>
+  `).join('');
+}
+
+/* ─── Tab 2: 27 portfolio cards ─── */
+const donuts = {};
+function renderPortfolios() {
+  const host = document.getElementById('portfolio-host');
+  const clusters = ['CTRL','ORDN','HHHH','DRUNK'];
+  host.innerHTML = clusters.map(cl => {
+    const info = CLUSTER_INFO[cl];
+    const types = TYPES.filter(t => t.cluster === cl);
+    return `
+      <div class="cluster-section">
+        <div class="sec-head">
+          <h3>${info.label}</h3>
+          <span class="sec-pill cluster-${cl}">${types.length}개 유형</span>
+        </div>
+        <div class="sec-desc">${info.desc}</div>
+        <div class="pf-grid">${types.map(cardHTML).join('')}</div>
+      </div>`;
+  }).join('');
+
+  TYPES.forEach(t => {
+    const ctx = document.getElementById('donut-' + t.code);
+    if (!ctx) return;
+    donuts[t.code] = new Chart(ctx.getContext('2d'), {
+      type:'doughnut',
+      data:{ labels:t.alloc.map(a=>a.etf), datasets:[{ data:t.alloc.map(a=>a.pct), backgroundColor:t.alloc.map((_,i)=>SLICE[i%SLICE.length]), borderWidth:2, borderColor:'#fff' }] },
+      options:{ responsive:false, animation:false, cutout:'65%', plugins:{ legend:{display:false}, tooltip:{ callbacks:{ label:ctx=>ctx.label+': '+ctx.parsed+'%' } } } }
+    });
+  });
+}
+
+function cardHTML(t) {
+  return `
+    <div class="pf-card ${t.representative ? 'representative' : ''}" id="pf-${t.code}">
+      <div class="pf-head">
+        <div class="pf-title">
+          <span class="pf-code">${t.code}</span>
+          <span class="pf-name">· ${t.name}</span>
+        </div>
+        <div class="pf-tags">
+          ${t.representative ? '<span class="star-tag">★ 대표</span>' : ''}
+          <span class="risk-tag risk-${t.risk}">${RISK_LABEL[t.risk]}</span>
+        </div>
+      </div>
+      <div class="pf-hook">${t.hook}</div>
+      <div class="pf-body">
+        <div class="pf-donut-wrap">
+          <canvas id="donut-${t.code}" width="120" height="120"></canvas>
+          <div class="pf-donut-center">
+            <div class="pct">${t.code}</div>
+            <div class="unit">100%</div>
+          </div>
+        </div>
+        <div class="alloc-list">
+          ${t.alloc.map((a,i)=>`
+            <div class="alloc-row">
+              <div class="alloc-dot" style="background:${SLICE[i%SLICE.length]}"></div>
+              <div class="alloc-etf">${a.etf}${a.note ? `<span class="note">${a.note}</span>` : ''}</div>
+              <div class="alloc-pct">${a.pct}%</div>
+            </div>`).join('')}
+        </div>
+      </div>
+      ${t.caveat ? `<div class="caveat ${t.caveat.type==='warn' ? 'warn' : ''}">${t.caveat.text}</div>` : ''}
+    </div>`;
+}
+
+/* ─── Tab 3: quiz with 3-axis coordinate matching ─── */
+const answers = {};
+function renderQuiz() {
+  const host = document.getElementById('quiz-form');
+  host.innerHTML = QUIZ.map((q, qi) => `
+    <div class="quiz-q">
+      <div class="q-axis">${AXIS_LABEL[q.axis]} 축 · Q${qi+1}</div>
+      <div class="q-title"><span class="num">${qi+1}</span>${q.q}</div>
+      <div class="q-options">
+        ${q.options.map((o, oi) => `
+          <label class="q-opt" data-q="${qi}" data-o="${oi}" onclick="pickOpt(${qi}, ${oi})">${o.label}</label>
+        `).join('')}
+      </div>
+    </div>`).join('');
+  updateProgress();
+}
+
+function updateProgress() {
+  const n = Object.keys(answers).length;
+  document.getElementById('quiz-count').textContent = n;
+  document.getElementById('quiz-fill').style.width = (n / QUIZ.length * 100) + '%';
+  document.getElementById('btn-quiz').disabled = n < QUIZ.length;
+}
+
+function pickOpt(qi, oi) {
+  answers[qi] = oi;
+  document.querySelectorAll(`.q-opt[data-q="${qi}"]`).forEach(el => el.classList.remove('selected'));
+  document.querySelector(`.q-opt[data-q="${qi}"][data-o="${oi}"]`).classList.add('selected');
+  updateProgress();
+}
+
+function calcQuiz() {
+  /* 사용자 축 점수 계산: 각 축 관련 문항에서 기여도 누적 */
+  const sum = { a:0, b:0, c:0 };
+  const cnt = { a:0, b:0, c:0 };
+  QUIZ.forEach((q, qi) => {
+    const oi = answers[qi];
+    if (oi == null) return;
+    const d = q.options[oi].d;
+    sum.a += d.a; sum.b += d.b; sum.c += d.c;
+    cnt[q.axis] += 1;
+  });
+  /* 각 축 평균 → TYPES 축 좌표와 같은 −2~+2 scale 로 정규화.
+     각 문항 최대 ±2, 문항당 분포 기여가 다른 축에도 섞이므로 전체 문항 수로 나눔. */
+  const aScore = sum.a / QUIZ.length;
+  const bScore = sum.b / QUIZ.length;
+  const cScore = sum.c / QUIZ.length;
+
+  /* 27유형 각 좌표와 유클리드 거리 계산 → 최소 거리 유형이 승자 */
+  const ranked = TYPES.map(t => ({
+    t,
+    dist: Math.sqrt(
+      Math.pow(t.axis.a - aScore, 2) +
+      Math.pow(t.axis.b - bScore, 2) +
+      Math.pow(t.axis.c - cScore, 2)
+    )
+  })).sort((x, y) => x.dist - y.dist);
+
+  const winner = ranked[0].t;
+  const runnerUps = ranked.slice(1, 4).map(r => r.t);
+
+  const panel = document.getElementById('quiz-result');
+  panel.innerHTML = `
+    <div class="lead">지금 이 순간의 당신에게 가장 가까운 유형</div>
+    <div class="rcode">${winner.code}${winner.hidden ? ' <span style="color:var(--coral);font-size:22px;">✦</span>' : ''}</div>
+    <div class="rcluster">${CLUSTER_INFO[winner.cluster].label}</div>
+    <div class="rname">${winner.name}</div>
+    <div class="rhook">${winner.hook}</div>
+    <div class="axis-row">
+      <div class="axis-chip">안정 <strong>${fmtScore(aScore)}</strong></div>
+      <div class="axis-chip">성장 <strong>${fmtScore(bScore)}</strong></div>
+      <div class="axis-chip">규칙 <strong>${fmtScore(cScore)}</strong></div>
+    </div>
+    <div class="runner-up">근접 후보 3개 (클릭 시 해당 포트 이동)</div>
+    <div class="runner-list">
+      ${runnerUps.map(t => `
+        <span class="runner" onclick="jumpToType('${t.code}')">${t.code} · ${t.name}</span>
+      `).join('')}
+    </div>
+    <button class="jump-btn" onclick="jumpToType('${winner.code}')">
+      ${winner.code} 포트폴리오 바로 보기 →
+    </button>
+  `;
+  panel.classList.add('show');
+  panel.scrollIntoView({ behavior:'smooth', block:'center' });
+}
+
+function fmtScore(v) {
+  const s = v.toFixed(2);
+  return v > 0 ? '+' + s : s;
+}
+
+/* ─── Navigation helper ─── */
+function jumpToType(code) {
+  showTab('portfolio', null);
+  document.querySelectorAll('.tab').forEach((t, i) => t.classList.toggle('active', i === 1));
+  setTimeout(() => {
+    const card = document.getElementById('pf-' + code);
+    if (!card) return;
+    card.scrollIntoView({ behavior:'smooth', block:'center' });
+    card.classList.add('highlight-pulse');
+    setTimeout(() => card.classList.remove('highlight-pulse'), 2200);
+  }, 80);
+}
+
+/* ─── Init ─── */
+renderTypes();
+renderPortfolios();
+renderQuiz();
+</script>
+
+</body>
+</html>
